@@ -6,6 +6,7 @@ toolchain go1.22.0
 
 require (
 	github.com/grafana/grafana-plugin-sdk-go v0.212.0
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/snowflakedb/gosnowflake v1.8.0
 	github.com/stretchr/testify v1.8.4
 )

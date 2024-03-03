@@ -1,9 +1,11 @@
-import { DataQuery, DataSourceJsonData } from '@grafana/data';
+import {  DataSourceJsonData } from '@grafana/data';
+import { DataQuery } from '@grafana/schema';
 
 export interface SnowflakeQuery extends DataQuery {
   queryText?: string;
   queryType?: string;
   timeColumns?: string[];
+  skipCache: boolean
 }
 
 export const defaultQuery: Partial<SnowflakeQuery> = {
@@ -27,6 +29,10 @@ export interface SnowflakeOptions extends DataSourceJsonData {
   schema?: string;
   extraConfig?: string;
   basicAuth: boolean;
+
+  cacheEnabled: boolean;
+  cacheMaxEntries: number;
+  cacheTtlMinutes: number;
 }
 
 /**

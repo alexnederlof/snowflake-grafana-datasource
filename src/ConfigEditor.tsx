@@ -5,9 +5,9 @@ import { SnowflakeOptions, SnowflakeSecureOptions } from './types';
 
 const { SecretFormField, FormField, Switch } = LegacyForms;
 
-interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> {}
+interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> { }
 
-interface State {}
+interface State { }
 
 export class ConfigEditor extends PureComponent<Props, State> {
   onAccountChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -147,6 +147,52 @@ export class ConfigEditor extends PureComponent<Props, State> {
     });
   };
 
+  onCacheEnabledChange = () => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      cacheEnabled: !options.jsonData.cacheEnabled,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+
+  onMaxEntriesChange = (event: ChangeEvent<HTMLInputElement>) => {
+    this.props.onOptionsChange({
+      ...this.props.options,
+      jsonData: {
+        ...this.props.options.jsonData,
+        cacheMaxEntries: Number(event.target.value),
+      },
+    });
+  }
+
+  onTtlMinutesChange = (event: ChangeEvent<HTMLInputElement>) => {
+    this.props.onOptionsChange({
+      ...this.props.options,
+      jsonData: {
+        ...this.props.options.jsonData,
+        cacheTtlMinutes: Number(event.target.value),
+      },
+    });
+  }
+
+  componentDidMount(): void {
+    let jd = this.props.options.jsonData
+    if (!jd.account || jd.account === "") {
+      // Set default values
+      this.props.onOptionsChange({
+        ...this.props.options,
+        jsonData: {
+          ...this.props.options.jsonData,
+          cacheEnabled: true,
+          cacheMaxEntries: 1000,
+          cacheTtlMinutes: 60,
+        }
+      })
+    }
+
+  }
+
   render() {
     const { options } = this.props;
     const { jsonData, secureJsonFields } = options;
@@ -270,6 +316,29 @@ export class ConfigEditor extends PureComponent<Props, State> {
             value={jsonData.extraConfig || ''}
             placeholder="TIMESTAMP_OUTPUT_FORMAT=MM-DD-YYYY&XXXXX=yyyyy&..."
           />
+        </div>
+
+        <br />
+        <h3 className="page-heading">Cache configuration</h3>
+
+        <div className="gf-form">
+          <Switch label="Cache enabled" 
+          checked={jsonData.cacheEnabled} 
+          onChange={this.onCacheEnabledChange} />
+        </div>
+        <div className="gf-form">
+          <FormField type='number' 
+          label="Max entries" 
+          labelWidth={10} inputWidth={20} 
+          onChange={this.onMaxEntriesChange} 
+          value={jsonData.cacheMaxEntries} />
+        </div>
+        <div className="gf-form">
+          <FormField type='number' 
+          label="TTL (minutes)" 
+          labelWidth={10} inputWidth={20} 
+          onChange={this.onTtlMinutesChange} 
+          value={jsonData.cacheTtlMinutes} />
         </div>
       </div>
     );

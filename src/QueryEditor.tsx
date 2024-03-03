@@ -1,7 +1,7 @@
 import defaults from 'lodash/defaults';
 
 import React, { PureComponent } from 'react';
-import { Select, TagsInput, InlineFormLabel, CodeEditor, Field, Button } from '@grafana/ui';
+import { Select, TagsInput, InlineFormLabel, CodeEditor, Field, Button, Switch } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './datasource';
 import { defaultQuery, SnowflakeOptions, SnowflakeQuery } from './types';
@@ -92,6 +92,9 @@ export class QueryEditor extends PureComponent<Props> {
             showMiniMap={false}
             onSave={() => this.props.onRunQuery()}
           />
+        </Field>
+        <Field label="Skip cache">
+          <Switch  label="Skip cache" checked={query.skipCache} onChange={() => this.props.onChange({ ...query, skipCache: !query.skipCache })} />
         </Field>
         <Field>
           <Button variant="secondary" onClick={this.onFormat}>Format</Button>
