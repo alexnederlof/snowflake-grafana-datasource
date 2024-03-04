@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0
+
+- Add server side caching
+- Change query editor to a code editor for monospace font and better features
+- Allow queries to be formatted
+- Allow queries to be cancelled, freeing up resources and saving money.
+
 ## 1.5.1
 
 ### 🐞 Bug Fixes
