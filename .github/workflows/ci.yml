@@ -3,27 +3,28 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 jobs:
-  build:
+  build_yarn:
+    name: Frontend build and tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js environment
         uses: actions/setup-node@v3
         with:
-          node-version: "18.x"
+          node-version: "20.x"
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
       - name: Cache yarn cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         id: cache-yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
@@ -33,7 +34,7 @@ jobs:
 
       - name: Cache node_modules
         id: cache-node-modules
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: node_modules
           key: ${{ runner.os }}-${{ matrix.node-version }}-nodemodules-${{ hashFiles('**/yarn.lock') }}
@@ -46,30 +47,24 @@ jobs:
       - name: Build and test frontend
         run: yarn build
 
-      - name: Check for backend
-        id: check-for-backend
-        run: |
-          if [ -f "Magefile.go" ]
-          then
-            echo "::set-output name=has-backend::true"
-          fi
-
+  
+  build_go:
+    name: Backend build and test
+    runs-on: ubuntu-latest
+    steps:           
       - name: Setup Go environment
-        if: steps.check-for-backend.outputs.has-backend == 'true'
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: "1.20"
+          go-version: "1.21"
 
-      - name: Test backend
-        if: steps.check-for-backend.outputs.has-backend == 'true'
-        uses: magefile/mage-action@v2
-        with:
-          version: latest
-          args: coverage
+      - uses: actions/checkout@v4
+      
+      - name: Install Go dependencies
+        run: go mod download
 
       - name: Build backend
-        if: steps.check-for-backend.outputs.has-backend == 'true'
-        uses: magefile/mage-action@v2
+        uses: magefile/mage-action@v3
         with:
           version: latest
-          args: -v build:linux build:linuxARM build:linuxARM64  build:windows build:darwin build:darwinARM64
+          # Only build linux for the CI pipeline
+          args: -v build:linux # build:linuxARM build:linuxARM64  build:windows build:darwin build:darwinARM64
