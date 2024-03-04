@@ -1,6 +1,6 @@
 {
-  "name": "michelin-snowflake-datasource",
-  "version": "1.5.1",
+  "name": "lex-snowflake-datasource",
+  "version": "1.6.0",
   "description": "Data source for Snowflake",
   "scripts": {
     "build": "webpack -c ./webpack.config.ts --env production",
@@ -16,7 +16,7 @@
     "test:ci": "jest --passWithNoTests --maxWorkers 4",
     "typecheck": "tsc --noEmit"
   },
-  "author": "Manufacture Française des Pneumatiques Michelin",
+  "author": "Alex Nederlof",
   "license": "Apache-2.0",
   "devDependencies": {
     "@babel/core": "^7.21.4",
@@ -56,7 +56,7 @@
     "webpack-livereload-plugin": "^3.0.2"
   },
   "engines": {
-    "node": ">=14"
+    "node": ">=20"
   },
   "dependencies": {
     "@emotion/css": "latest",

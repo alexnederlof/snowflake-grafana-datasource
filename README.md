@@ -1,6 +1,11 @@
 # Snowflake Grafana Data Source
 
-[![Build](https://github.com/michelin/snowflake-grafana-datasource/workflows/CI/badge.svg)](https://github.com/michelin/snowflake-grafana-datasource/actions?query=workflow%3A%22CI%22)
+This is a fork from the great https://github.com/alexnederlof/snowflake-grafana-datasource.
+
+It's published as `lex-snowflake-datasource`. 
+
+
+[![Build](https://github.com/alexnederlof/snowflake-grafana-datasource/workflows/CI/badge.svg)](https://github.com/alexnederlof/snowflake-grafana-datasource/actions?query=workflow%3A%22CI%22)
 
 With the Snowflake plugin, you can visualize your Snowflake data in Grafana and build awesome chart.
 
@@ -11,12 +16,12 @@ With the Snowflake plugin, you can visualize your Snowflake data in Grafana and 
 
 1. Install the plugin into the grafana plugin folder:
 ```shell
-grafana-cli --pluginUrl https://github.com/michelin/snowflake-grafana-datasource/releases/latest/download/snowflake-grafana-datasource.zip plugins install michelin-snowflake-datasource
+grafana-cli --pluginUrl https://github.com/alexnederlof/snowflake-grafana-datasource/releases/latest/download/snowflake-grafana-datasource.zip plugins install lex-snowflake-datasource
 ```
 or
 ```shell
 cd /var/lib/grafana/plugins/
-wget https://github.com/michelin/snowflake-grafana-datasource/releases/latest/download/snowflake-grafana-datasource.zip
+wget https://github.com/alexnederlof/snowflake-grafana-datasource/releases/latest/download/snowflake-grafana-datasource.zip
 unzip snowflake-grafana-datasource.zip
 ```
 
@@ -25,7 +30,7 @@ unzip snowflake-grafana-datasource.zip
 * macOS：/usr/local/etc/grafana/grafana.ini
 ```shell
 [plugins]
-allow_loading_unsigned_plugins = michelin-snowflake-datasource
+allow_loading_unsigned_plugins = lex-snowflake-datasource
 ```
 Or with docker
 ```shell
@@ -33,7 +38,7 @@ docker run -d \
 -p 3000:3000 \
 -v "$(pwd)"/grafana-plugins:/var/lib/grafana/plugins \
 --name=grafana \
--e "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=michelin-snowflake-datasource" \
+-e "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=lex-snowflake-datasource" \
 grafana/grafana
 ```
 

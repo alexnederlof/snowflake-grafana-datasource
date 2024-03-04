@@ -1,4 +1,4 @@
-module github.com/michelin/snowflake-grafana-datasource
+module github.com/alexnederlof/snowflake-grafana-datasource
 
 go 1.21
 
