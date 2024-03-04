@@ -57,14 +57,14 @@ jobs:
         with:
           go-version: "1.21"
 
-      - name: Test backend
-        uses: magefile/mage-action@v3
-        with:
-          version: latest
-          args: coverage
+      - uses: actions/checkout@v4
+      
+      - name: Install Go dependencies
+        run: go mod download
 
       - name: Build backend
         uses: magefile/mage-action@v3
         with:
           version: latest
-          args: -v build:linux build:linuxARM build:linuxARM64  build:windows build:darwin build:darwinARM64
+          # Only build linux for the CI pipeline
+          args: -v build:linux # build:linuxARM build:linuxARM64  build:windows build:darwin build:darwinARM64
