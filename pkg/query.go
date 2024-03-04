@@ -14,6 +14,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	sf "github.com/snowflakedb/gosnowflake"
 )
 
@@ -55,6 +56,7 @@ type queryModel struct {
 	QueryText   string   `json:"queryText"`
 	QueryType   string   `json:"queryType"`
 	TimeColumns []string `json:"timeColumns"`
+	SkipCache   bool     `json:"skipCache"`
 }
 
 func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig, password string, privateKey string) (result DataQueryResult, err error) {
@@ -63,7 +65,6 @@ func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig
 	sf.CustomJSONDecoderEnabled = true
 
 	connectionString := getConnectionString(config, password, privateKey)
-
 	db, err := sql.Open("snowflake", connectionString)
 	if err != nil {
 		log.DefaultLogger.Error("Could not open database", "err", err)
@@ -184,7 +185,7 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 	return values, nil
 }
 
-func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.DataQuery, config pluginConfig, password string, privateKey string) (response backend.DataResponse) {
+func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.DataQuery, config pluginConfig, password string, privateKey string, cache *expirable.LRU[CacheKey, CacheValue]) (response backend.DataResponse) {
 	var qm queryModel
 	err := json.Unmarshal(dataQuery.JSON, &qm)
 	if err != nil {
@@ -209,8 +210,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 		MaxDataPoints: dataQuery.MaxDataPoints,
 	}
 
-	log.DefaultLogger.Info("Query config", "config", qm)
-
+	// Fixed: inter
 	// Apply macros
 	queryConfig.FinalQuery, err = Interpolate(&queryConfig)
 	if err != nil {
@@ -221,14 +221,15 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 	// Remove final semi column
 	queryConfig.FinalQuery = strings.TrimSuffix(strings.TrimSpace(queryConfig.FinalQuery), ";")
 
-	frame := data.NewFrame("")
-	dataResponse, err := queryConfig.fetchData(ctx, &config, password, privateKey)
+	result, err := getData(ctx, qm, queryConfig, config, password, privateKey, dataQuery, cache)
 	if err != nil {
 		response.Error = err
 		return response
 	}
-	log.DefaultLogger.Debug("Response", "data", dataResponse)
-	for _, table := range dataResponse.Tables {
+
+	frame := data.NewFrame("")
+	log.DefaultLogger.Debug("Response", "data", result)
+	for _, table := range result.Tables {
 		timeColumnIndex := -1
 		for i, column := range table.Columns {
 			if err != nil {
@@ -309,6 +310,55 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 	response.Frames = append(response.Frames, frame)
 
 	return response
+}
+
+func getData(ctx context.Context, qm queryModel, queryConfig queryConfigStruct, config pluginConfig, password string, privateKey string, dataQuery backend.DataQuery, cache *expirable.LRU[CacheKey, CacheValue]) (CacheValue, error) {
+
+	if qm.SkipCache {
+		dataResponse, err := queryConfig.fetchData(ctx, &config, password, privateKey)
+		if err != nil {
+			return CacheValue{}, err
+		}
+		return CacheValue{dataResponse.Tables, dataQuery.TimeRange}, nil
+	}
+
+	key := CacheKey{
+		Query:           queryConfig.FinalQuery,
+		MaxDataPoints:   dataQuery.MaxDataPoints,
+		DurationSeconds: int64(dataQuery.TimeRange.Duration().Seconds()),
+	}
+
+	// If templating is not used (ie when we don't manipulate the timeseries), we can use the default cache key
+	// to do that we "zero out" the MaxDataPoints and DurationSeconds that we normally use as the cache key
+	templatingUsed := queryConfig.FinalQuery != queryConfig.RawQuery
+	if !templatingUsed {
+		log.DefaultLogger.Info("No templating using, defaulting the cache key")
+		key.MaxDataPoints = 0
+		key.DurationSeconds = 0
+	}
+
+	log.DefaultLogger.Info("Cache key", "key", key)
+	result, found := cache.Get(key)
+	if !found || (templatingUsed && key.Expired(result.TimeRange, dataQuery.TimeRange, config.CacheTtlMinutes)) {
+		if found {
+			log.DefaultLogger.Debug("CACHE MISS", "query", queryConfig.FinalQuery)
+			cache.Remove(key)
+		} else {
+			log.DefaultLogger.Debug("CACHE MISS", "query", queryConfig.FinalQuery)
+		}
+		dataResponse, err := queryConfig.fetchData(ctx, &config, password, privateKey)
+		result = CacheValue{dataResponse.Tables, dataQuery.TimeRange}
+		if err != nil {
+			return CacheValue{}, err
+		}
+		if !qm.SkipCache {
+			cache.Add(key, result)
+		}
+		log.DefaultLogger.Debug("Cache entry added", "size", cache.Len())
+	} else {
+		log.DefaultLogger.Debug("CACHE HIT", "query", queryConfig.FinalQuery)
+	}
+	return result, nil
 }
 
 func mapFillMode(fillModeString string) data.FillMode {

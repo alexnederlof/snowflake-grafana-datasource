@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-
-	"net/url"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 )
 
 // newDatasource returns datasource.ServeOpts.
@@ -47,7 +47,13 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
 	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
+	im, err := td.im.Get(ctx, req.PluginContext)
+	if err != nil {
+		log.DefaultLogger.Error("Could not get instance for plugin", "err", err)
+		return response, err
+	}
 
+	cache := im.(*instanceSettings).Cache
 	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
 	if err != nil {
 		log.DefaultLogger.Error("Could not get config for plugin", "err", err)
@@ -58,7 +64,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	for _, q := range req.Queries {
 		// save the response in a hashmap
 		// based on with RefID as identifier
-		response.Responses[q.RefID] = td.query(ctx, q, config, password, privateKey)
+		response.Responses[q.RefID] = td.query(ctx, q, config, password, privateKey, cache)
 	}
 
 	return response, nil
@@ -72,6 +78,10 @@ type pluginConfig struct {
 	Database    string `json:"database"`
 	Schema      string `json:"schema"`
 	ExtraConfig string `json:"extraConfig"`
+
+	CacheEnabled    bool `json:"cacheEnabled"`
+	CacheMaxEntries int  `json:"cacheMaxEntries"`
+	CacheTtlMinutes int  `json:"cacheTtlMinutes"`
 }
 
 func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, error) {
@@ -103,13 +113,21 @@ func getConnectionString(config *pluginConfig, password string, privateKey strin
 }
 
 type instanceSettings struct {
+	Cache *expirable.LRU[CacheKey, CacheValue]
 }
 
 func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	log.DefaultLogger.Info("Creating instance")
-	return &instanceSettings{}, nil
+	var config, err = getConfig(&setting)
+	if err != nil {
+		return nil, err
+	}
+	cache := NewCache(config.CacheMaxEntries, config.CacheTtlMinutes)
+	return &instanceSettings{cache}, nil
 }
 
 func (s *instanceSettings) Dispose() {
+	s.Cache.Purge()
+
 	log.DefaultLogger.Info("Disposing of instance")
 }
