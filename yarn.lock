@@ -1321,7 +1321,7 @@
     uplot "1.6.28"
     xss "^1.0.14"
 
-"@grafana/e2e-selectors@10.2.3", "@grafana/e2e-selectors@^10.0.3":
+"@grafana/e2e-selectors@10.2.3":
   version "10.2.3"
   resolved "https://registry.yarnpkg.com/@grafana/e2e-selectors/-/e2e-selectors-10.2.3.tgz#de89ee7b9262a600539a5a72440d962e0c60e92e"
   integrity sha512-As8ZAEi0hqxbCKEnetVVSQlUBWBQPdm1995zraPqHbrekfV862T+HUemuOveTnA6NwNl+ocs8thKNgxQAcExtg==
@@ -1330,7 +1330,7 @@
     tslib "2.6.0"
     typescript "5.2.2"
 
-"@grafana/e2e-selectors@10.3.3":
+"@grafana/e2e-selectors@10.3.3", "@grafana/e2e-selectors@^10.3.3":
   version "10.3.3"
   resolved "https://registry.yarnpkg.com/@grafana/e2e-selectors/-/e2e-selectors-10.3.3.tgz#3eaf6986ea10e58a6c776392ca6cc475ba373097"
   integrity sha512-VsvdMldC3ARQp5axUAHWVHpUoYwZSTf9wfcT21zh+hxGbuiPbdDS9VqZFKpwVtJtHGjtvnKBtWKODD7ArQyOOw==
